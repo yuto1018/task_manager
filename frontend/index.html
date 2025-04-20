@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>タスク管理</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <h1>タスク管理</h1>
+
+    <div>
+        <input type="text" id="taskName" placeholder="タスク名">
+        <select id="taskPriority">
+            <option value="低">低</option>
+            <option value="中">中</option>
+            <option value="高">高</option>
+        </select>
+        <button onclick="addTask()">追加</button>
+    </div>
+
+    <ul id="taskList"></ul>
+
+    <script src="script.js"></script>
+</body>
+</html>
