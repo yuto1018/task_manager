@@ -10,7 +10,8 @@ struct Task {
     std::string name;
     bool completed;
     std::string priority;
-    std::string deadline;  // 締め切り日フィールドを追加
+    std::string deadline;  // 締め切り日フィールド
+    std::string details;   // 詳細フィールドを追加
 };
 
 std::vector<Task> tasks;
@@ -35,7 +36,8 @@ void save_tasks_to_file() {
             {"name", task.name}, 
             {"completed", task.completed}, 
             {"priority", task.priority},
-            {"deadline", task.deadline}  // 締め切り日を保存
+            {"deadline", task.deadline},
+            {"details", task.details}
         });
     }
     std::ofstream file(tasks_file, std::ios::trunc); // 上書き保存
@@ -61,6 +63,12 @@ void load_tasks_from_file() {
 
     tasks.clear();
     for (const auto& json_task : json_tasks) {
+        // 詳細フィールドが存在するか確認
+        std::string details = "";
+        if (json_task.contains("details") && !json_task["details"].is_null()) {
+            details = json_task["details"];
+        }
+
         // deadlineフィールドが存在するか確認
         std::string deadline = "";
         if (json_task.contains("deadline") && !json_task["deadline"].is_null()) {
@@ -71,7 +79,8 @@ void load_tasks_from_file() {
             json_task["name"], 
             json_task["completed"], 
             json_task["priority"],
-            deadline
+            deadline,
+            details
         });
     }
     std::cout << "Tasks loaded from " << tasks_file << std::endl;
@@ -109,7 +118,8 @@ int main() {
             task_object["name"] = task.name;
             task_object["completed"] = task.completed;
             task_object["priority"] = task.priority;
-            task_object["deadline"] = task.deadline;  // 締め切り日を追加
+            task_object["deadline"] = task.deadline;
+            task_object["details"] = task.details;
             tasks_list.emplace_back(std::move(task_object));
         }
 
@@ -127,13 +137,19 @@ int main() {
         std::string name = body["name"].s();
         std::string priority = body["priority"].s();
         
-        // 締め切り日の処理を追加（存在しない場合は空文字列）
+        // 締め切り日の処理
         std::string deadline = "";
         if (body.has("deadline") && !body["deadline"].is_null()) {
             deadline = body["deadline"].s();
         }
 
-        tasks.emplace_back(Task{name, false, priority, deadline});
+        // 詳細の処理
+        std::string details = "";
+        if (body.has("details") && !body["details"].is_null()) {
+            details = body["details"].s();
+        }
+
+        tasks.emplace_back(Task{name, false, priority, deadline, details});
         save_tasks_to_file();
 
         crow::json::wvalue response;
@@ -163,6 +179,13 @@ int main() {
             deadline = body["deadline"].s();
         }
         tasks[index].deadline = deadline;
+
+        // 詳細の処理
+        std::string details = "";
+        if (body.has("details") && !body["details"].is_null()) {
+            details = body["details"].s();
+        }
+        tasks[index].details = details;
 
         save_tasks_to_file();
 

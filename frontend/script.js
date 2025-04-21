@@ -53,6 +53,19 @@ function displayTasks() {
         // 優先度に応じたクラスを設定
         const priorityClass = getPriorityClass(task.priority);
         const completedClass = task.completed ? 'completed-task' : '';
+
+        // 詳細表示の準備
+        let detailsSection = '';
+        if (task.details && task.details.trim()) {
+            detailsSection = `
+                <div class="details-toggle" onclick="toggleDetails(this, ${index})">
+                    <i class="fas fa-chevron-down"></i> 詳細を表示
+                </div>
+                <div class="task-description" style="display: none;">
+                    ${task.details.replace(/\n/g, '<br>')}
+                </div>
+            `;
+        }
         
         li.innerHTML = `
             <div class="task-info">
@@ -64,6 +77,7 @@ function displayTasks() {
                     ${deadlineDisplay}
                     <span>${task.completed ? '<i class="fas fa-check-circle"></i> 完了' : '<i class="far fa-clock"></i> 未完了'}</span>
                 </div>
+                ${detailsSection}
             </div>
             <div class="task-actions">
                 ${!task.completed ? `<button class="edit" onclick="openEditModal(${index})"><i class="fas fa-edit"></i> 編集</button>` : ''}
@@ -93,6 +107,17 @@ function displayTasks() {
     
     // ソートボタンのアクティブ状態を更新
     updateSortButtonsState();
+}
+
+// 詳細表示の切り替え
+function toggleDetails(button, index) {
+    const descriptionElement = button.nextElementSibling;
+    const isHidden = descriptionElement.style.display === 'none';
+    
+    descriptionElement.style.display = isHidden ? 'block' : 'none';
+    button.innerHTML = isHidden 
+        ? '<i class="fas fa-chevron-up"></i> 詳細を隠す'
+        : '<i class="fas fa-chevron-down"></i> 詳細を表示';
 }
 
 // ソートボタンの状態を更新
@@ -177,6 +202,7 @@ function addTask() {
     
     const taskPriority = document.getElementById("taskPriority").value;
     const taskDeadline = document.getElementById("taskDeadline").value;
+    const taskDetails = document.getElementById("taskDetails").value;
 
     fetch(`${API_URL}/add_task`, {
         method: "POST",
@@ -184,13 +210,15 @@ function addTask() {
         body: JSON.stringify({ 
             name: taskName, 
             priority: taskPriority,
-            deadline: taskDeadline || null
+            deadline: taskDeadline || null,
+            details: taskDetails || null
         })
     })
     .then(() => {
         fetchTasks();
         document.getElementById("taskName").value = "";
         document.getElementById("taskDeadline").value = "";
+        document.getElementById("taskDetails").value = "";
     })
     .catch(error => console.error("タスク追加エラー:", error));
 }
@@ -204,6 +232,7 @@ function openEditModal(index) {
     document.getElementById("editTaskName").value = task.name;
     document.getElementById("editTaskPriority").value = task.priority;
     document.getElementById("editTaskDeadline").value = task.deadline || '';
+    document.getElementById("editTaskDetails").value = task.details || '';
     
     // モーダルを表示
     const modal = document.getElementById("editTaskModal");
@@ -238,6 +267,7 @@ function updateTask() {
     
     const taskPriority = document.getElementById("editTaskPriority").value;
     const taskDeadline = document.getElementById("editTaskDeadline").value;
+    const taskDetails = document.getElementById("editTaskDetails").value;
     
     fetch(`${API_URL}/update_task/${index}`, {
         method: "POST",
@@ -246,6 +276,7 @@ function updateTask() {
             name: taskName, 
             priority: taskPriority,
             deadline: taskDeadline || null,
+            details: taskDetails || null,
             completed: allTasks[index].completed
         })
     })
