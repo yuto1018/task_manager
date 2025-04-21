@@ -141,6 +141,36 @@ int main() {
         return crow::response{response};
     });
 
+    // ✅ `/update_task` API（タスク更新）
+    CROW_ROUTE(app, "/update_task/<int>").methods("POST"_method)
+    ([](const crow::request& req, int index) {
+        if (index < 0 || index >= tasks.size()) {
+            return crow::response(400, "Invalid task index.");
+        }
+
+        auto body = crow::json::load(req.body);
+        if (!body)
+            return crow::response(400, "Invalid JSON");
+
+        // 各フィールドを更新
+        tasks[index].name = body["name"].s();
+        tasks[index].priority = body["priority"].s();
+        tasks[index].completed = body["completed"].b();
+        
+        // 締め切り日の処理
+        std::string deadline = "";
+        if (body.has("deadline") && !body["deadline"].is_null()) {
+            deadline = body["deadline"].s();
+        }
+        tasks[index].deadline = deadline;
+
+        save_tasks_to_file();
+
+        crow::json::wvalue response;
+        response["message"] = "Task updated.";
+        return crow::response{response};
+    });
+
     // ✅ `/complete_task` API（タスク完了）
     CROW_ROUTE(app, "/complete_task/<int>")([](int index) {
         if (index >= 0 && index < tasks.size()) {

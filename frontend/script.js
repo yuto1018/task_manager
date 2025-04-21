@@ -66,6 +66,7 @@ function displayTasks() {
                 </div>
             </div>
             <div class="task-actions">
+                ${!task.completed ? `<button class="edit" onclick="openEditModal(${index})"><i class="fas fa-edit"></i> 編集</button>` : ''}
                 ${!task.completed ? `<button class="complete" onclick="completeTask(${index})"><i class="fas fa-check"></i> 完了</button>` : ''}
                 <button class="delete" onclick="deleteTask(${index})"><i class="fas fa-trash"></i> 削除</button>
             </div>
@@ -192,6 +193,67 @@ function addTask() {
         document.getElementById("taskDeadline").value = "";
     })
     .catch(error => console.error("タスク追加エラー:", error));
+}
+
+// 編集モーダルを開く
+function openEditModal(index) {
+    const task = allTasks[index];
+    
+    // モーダルに現在のタスク情報を設定
+    document.getElementById("editTaskIndex").value = index;
+    document.getElementById("editTaskName").value = task.name;
+    document.getElementById("editTaskPriority").value = task.priority;
+    document.getElementById("editTaskDeadline").value = task.deadline || '';
+    
+    // モーダルを表示
+    const modal = document.getElementById("editTaskModal");
+    modal.style.display = "block";
+    
+    // 閉じるボタンのイベントリスナー
+    const closeBtn = document.querySelector(".close");
+    closeBtn.onclick = closeEditModal;
+    
+    // モーダル外クリックで閉じる
+    window.onclick = function(event) {
+        if (event.target == modal) {
+            closeEditModal();
+        }
+    };
+}
+
+// 編集モーダルを閉じる
+function closeEditModal() {
+    document.getElementById("editTaskModal").style.display = "none";
+}
+
+// タスク更新
+function updateTask() {
+    const index = document.getElementById("editTaskIndex").value;
+    const taskName = document.getElementById("editTaskName").value;
+    
+    if (!taskName.trim()) {
+        alert("タスク名を入力してください");
+        return;
+    }
+    
+    const taskPriority = document.getElementById("editTaskPriority").value;
+    const taskDeadline = document.getElementById("editTaskDeadline").value;
+    
+    fetch(`${API_URL}/update_task/${index}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ 
+            name: taskName, 
+            priority: taskPriority,
+            deadline: taskDeadline || null,
+            completed: allTasks[index].completed
+        })
+    })
+    .then(() => {
+        closeEditModal();
+        fetchTasks();
+    })
+    .catch(error => console.error("タスク更新エラー:", error));
 }
 
 // タスク完了
