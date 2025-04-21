@@ -8,6 +8,7 @@
     --dark-gray: #757575;
     --box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
     --border-radius: 6px;
+    --edit-color: #f39c12;
 }
 
 * {
@@ -61,6 +62,14 @@ h2 {
 .form-group {
     flex: 1;
     min-width: 150px;
+    margin-bottom: 15px;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 5px;
+    font-weight: 500;
+    color: var(--dark-gray);
 }
 
 .form-control {
@@ -191,6 +200,16 @@ li {
     gap: 5px;
 }
 
+button.edit {
+    background-color: var(--edit-color);
+    color: white;
+    padding: 8px 12px;
+}
+
+button.edit:hover {
+    background-color: #d68910;
+}
+
 button.complete {
     background-color: var(--secondary-color);
     color: white;
@@ -209,6 +228,25 @@ button.delete {
 
 button.delete:hover {
     background-color: #c0392b;
+}
+
+.btn-update {
+    background-color: var(--secondary-color);
+    color: white;
+}
+
+.btn-update:hover {
+    background-color: #27ae60;
+}
+
+.btn-cancel {
+    background-color: var(--medium-gray);
+    color: var(--dark-gray);
+}
+
+.btn-cancel:hover {
+    background-color: var(--dark-gray);
+    color: white;
 }
 
 .deadline-approaching {
@@ -231,4 +269,62 @@ button.delete:hover {
     text-align: center;
     padding: 20px;
     font-style: italic;
+}
+
+/* モーダルスタイル */
+.modal {
+    display: none;
+    position: fixed;
+    z-index: 1000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    overflow: auto;
+}
+
+.modal-content {
+    background-color: white;
+    margin: 10% auto;
+    padding: 25px;
+    border-radius: var(--border-radius);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    width: 80%;
+    max-width: 500px;
+    animation: modalFadeIn 0.3s;
+}
+
+@keyframes modalFadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(-20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.close {
+    color: var(--dark-gray);
+    float: right;
+    font-size: 24px;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+.close:hover {
+    color: var(--danger-color);
+}
+
+.edit-form {
+    margin-top: 20px;
+}
+
+.modal-buttons {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    margin-top: 20px;
 }
