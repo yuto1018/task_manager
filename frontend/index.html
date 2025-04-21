@@ -5,21 +5,44 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>タスク管理</title>
     <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 <body>
-    <h1>タスク管理</h1>
+    <div class="container">
+        <h1><i class="fas fa-tasks"></i> タスク管理</h1>
 
-    <div>
-        <input type="text" id="taskName" placeholder="タスク名">
-        <select id="taskPriority">
-            <option value="低">低</option>
-            <option value="中">中</option>
-            <option value="高">高</option>
-        </select>
-        <button onclick="addTask()">追加</button>
+        <div class="task-form">
+            <div class="form-group">
+                <input type="text" id="taskName" placeholder="タスク名" class="form-control">
+            </div>
+            <div class="form-group">
+                <select id="taskPriority" class="form-control">
+                    <option value="低">優先度: 低</option>
+                    <option value="中">優先度: 中</option>
+                    <option value="高">優先度: 高</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <input type="date" id="taskDeadline" class="form-control">
+            </div>
+            <button onclick="addTask()" class="btn-add"><i class="fas fa-plus"></i> 追加</button>
+        </div>
+
+        <div class="sort-controls">
+            <span>並び替え: </span>
+            <button onclick="sortTasks('priority')" class="btn-sort"><i class="fas fa-sort-amount-down"></i> 優先度順</button>
+            <button onclick="sortTasks('deadline')" class="btn-sort"><i class="fas fa-calendar-alt"></i> 締切日順</button>
+            <button onclick="sortTasks('name')" class="btn-sort"><i class="fas fa-font"></i> 名前順</button>
+        </div>
+
+        <div class="task-container">
+            <h2><i class="far fa-clock"></i> 未完了タスク</h2>
+            <ul id="pendingTaskList"></ul>
+            
+            <h2><i class="fas fa-check-circle"></i> 完了タスク</h2>
+            <ul id="completedTaskList"></ul>
+        </div>
     </div>
-
-    <ul id="taskList"></ul>
 
     <script src="script.js"></script>
 </body>

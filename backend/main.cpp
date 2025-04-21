@@ -10,12 +10,13 @@ struct Task {
     std::string name;
     bool completed;
     std::string priority;
+    std::string deadline;  // 締め切り日フィールドを追加
 };
 
 std::vector<Task> tasks;
 
 // JSONデータを保存するファイルパス（絶対パスで統一）
-std::string tasks_file = "/mnt/c/Users/Furihata Yuto/projects/crow_example/backend/tasks.json";
+std::string tasks_file = "/mnt/c/Users/Furihata Yuto/projects/task_manager/backend/tasks.json";
 
 // tasks.json が存在しない場合に作成
 void ensure_tasks_file_exists(const std::string& filename) {
@@ -30,7 +31,12 @@ void ensure_tasks_file_exists(const std::string& filename) {
 void save_tasks_to_file() {
     nlohmann::json j;
     for (const auto& task : tasks) {
-        j.push_back({{"name", task.name}, {"completed", task.completed}, {"priority", task.priority}});
+        j.push_back({
+            {"name", task.name}, 
+            {"completed", task.completed}, 
+            {"priority", task.priority},
+            {"deadline", task.deadline}  // 締め切り日を保存
+        });
     }
     std::ofstream file(tasks_file, std::ios::trunc); // 上書き保存
     if (!file.is_open()) {
@@ -55,7 +61,18 @@ void load_tasks_from_file() {
 
     tasks.clear();
     for (const auto& json_task : json_tasks) {
-        tasks.push_back({json_task["name"], json_task["completed"], json_task["priority"]});
+        // deadlineフィールドが存在するか確認
+        std::string deadline = "";
+        if (json_task.contains("deadline") && !json_task["deadline"].is_null()) {
+            deadline = json_task["deadline"];
+        }
+        
+        tasks.push_back({
+            json_task["name"], 
+            json_task["completed"], 
+            json_task["priority"],
+            deadline
+        });
     }
     std::cout << "Tasks loaded from " << tasks_file << std::endl;
 }
@@ -69,7 +86,7 @@ int main() {
 
     // ✅ `/` で `index.html` を提供
     CROW_ROUTE(app, "/")([]() {
-        std::string index_path = "/mnt/c/Users/Furihata Yuto/projects/crow_example/frontend/index.html";
+        std::string index_path = "/mnt/c/Users/Furihata Yuto/projects/task_manager/frontend/index.html";
         std::ifstream file(index_path);
 
         if (!file.is_open()) {
@@ -92,6 +109,7 @@ int main() {
             task_object["name"] = task.name;
             task_object["completed"] = task.completed;
             task_object["priority"] = task.priority;
+            task_object["deadline"] = task.deadline;  // 締め切り日を追加
             tasks_list.emplace_back(std::move(task_object));
         }
 
@@ -108,8 +126,14 @@ int main() {
 
         std::string name = body["name"].s();
         std::string priority = body["priority"].s();
+        
+        // 締め切り日の処理を追加（存在しない場合は空文字列）
+        std::string deadline = "";
+        if (body.has("deadline") && !body["deadline"].is_null()) {
+            deadline = body["deadline"].s();
+        }
 
-        tasks.emplace_back(Task{name, false, priority});
+        tasks.emplace_back(Task{name, false, priority, deadline});
         save_tasks_to_file();
 
         crow::json::wvalue response;
@@ -139,7 +163,7 @@ int main() {
 
     // ✅ `/<path>` で `script.js` や `style.css` などの静的ファイルを配信
     CROW_ROUTE(app, "/<path>")([](const std::string& path) {
-        std::string full_path = "/mnt/c/Users/Furihata Yuto/projects/crow_example/frontend/" + path;
+        std::string full_path = "/mnt/c/Users/Furihata Yuto/projects/task_manager/frontend/" + path;
         std::ifstream file(full_path);
 
         if (!file.is_open()) {

@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.10)
-project(crow_example)
+project(task_manager)
 
 find_package(nlohmann_json 3.2.0 REQUIRED)
 
