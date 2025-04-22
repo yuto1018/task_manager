@@ -9,6 +9,7 @@
     --box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
     --border-radius: 6px;
     --edit-color: #f39c12;
+    --today-color: #f1c40f;
 }
 
 * {
@@ -26,7 +27,7 @@ body {
 }
 
 .container {
-    max-width: 800px;
+    max-width: 1000px;
     margin: 0 auto;
     background-color: white;
     border-radius: var(--border-radius);
@@ -149,12 +150,41 @@ button {
     border-color: var(--primary-color);
 }
 
-.task-container {
+/* タスクリストのレイアウト */
+.task-lists-container {
+    display: flex;
+    gap: 20px;
+    margin-bottom: 20px;
+}
+
+.task-list-column {
+    flex: 1;
+    min-width: 0;
     background-color: white;
+    border-radius: var(--border-radius);
+    padding: 10px;
+}
+
+.today-tasks h2 {
+    color: var(--today-color);
+}
+
+.today-tasks {
+    background-color: rgba(241, 196, 15, 0.1);
+    border: 1px dashed var(--today-color);
+}
+
+.drag-hint {
+    font-size: 0.9rem;
+    color: var(--dark-gray);
+    text-align: center;
+    margin: 5px 0;
+    font-style: italic;
 }
 
 ul {
     list-style-type: none;
+    min-height: 50px;
 }
 
 li {
@@ -166,6 +196,23 @@ li {
     justify-content: space-between;
     align-items: center;
     box-shadow: var(--box-shadow);
+    cursor: grab;
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+li:active {
+    cursor: grabbing;
+}
+
+li.dragging {
+    opacity: 0.7;
+    transform: scale(0.95);
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+}
+
+.droppable-hover {
+    background-color: rgba(52, 152, 219, 0.1);
+    border: 2px dashed var(--primary-color);
 }
 
 .task-info {
@@ -295,6 +342,7 @@ button.delete:hover {
 #completedTaskList li {
     background-color: rgba(245, 245, 245, 0.5);
     opacity: 0.8;
+    cursor: default;
 }
 
 .empty-list-message {
@@ -360,4 +408,23 @@ button.delete:hover {
     justify-content: flex-end;
     gap: 10px;
     margin-top: 20px;
+}
+
+/* レスポンシブデザイン */
+@media (max-width: 768px) {
+    .task-lists-container {
+        flex-direction: column;
+    }
+    
+    .task-list-column {
+        margin-bottom: 20px;
+    }
+    
+    .task-actions {
+        flex-direction: column;
+    }
+    
+    .task-actions button {
+        margin-bottom: 5px;
+    }
 }
