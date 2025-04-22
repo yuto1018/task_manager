@@ -1,12 +1,7 @@
 [
     {
         "completed": true,
-        "name": "task2",
-        "priority": "中"
-    },
-    {
-        "completed": false,
-        "name": "task2",
-        "priority": "高"
+        "name": "task1",
+        "priority": "低"
     }
 ]
