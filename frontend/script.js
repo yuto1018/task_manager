@@ -480,9 +480,16 @@ function completeTask(index, event) {
                     // 現在のリストから削除
                     listItem.remove();
                     
+                    // 完了リストの空メッセージを削除（存在する場合）
+                    const completedTaskList = document.getElementById("completedTaskList");
+                    const emptyMessage = completedTaskList.querySelector('.empty-list-message');
+                    if (emptyMessage) {
+                        emptyMessage.remove();
+                    }
+                    
                     // 完了リストに追加するために元のタスク要素を作成しなおす
                     const completedTask = createTaskElement(allTasks[index], index);
-                    document.getElementById("completedTaskList").appendChild(completedTask);
+                    completedTaskList.appendChild(completedTask);
                     
                     // 対象リストが空かどうかチェック
                     checkEmptyLists();
@@ -513,10 +520,17 @@ function checkEmptyLists() {
         pendingTaskList.innerHTML = '<div class="empty-list-message">未完了のタスクはありません</div>';
     }
     
-    // 完了タスクが空かチェック
+    // 完了タスクが空かどうかをチェック
     const completedItems = Array.from(completedTaskList.children).filter(item => !item.classList.contains('empty-list-message'));
-    if (completedItems.length === 0 && !completedTaskList.querySelector('.empty-list-message')) {
+    if (completedItems.length === 0) {
+        // 完了タスクが空の場合のみメッセージを表示
         completedTaskList.innerHTML = '<div class="empty-list-message">完了したタスクはありません</div>';
+    } else {
+        // 完了タスクがある場合は、メッセージ要素があれば削除
+        const emptyMessage = completedTaskList.querySelector('.empty-list-message');
+        if (emptyMessage) {
+            emptyMessage.remove();
+        }
     }
 }
 
