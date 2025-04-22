@@ -556,5 +556,43 @@ function deleteTask(index) {
     }
 }
 
-// 初回ロード時にタスク一覧取得
-document.addEventListener("DOMContentLoaded", fetchTasks);
+// 初回ロード時にタスク一覧取得とイベントリスナー設定
+document.addEventListener("DOMContentLoaded", function() {
+    fetchTasks();
+    
+    // Enterキーでのタスク追加機能を設定
+    setupEnterKeySubmit();
+});
+
+// Enterキーでのタスク追加機能を設定
+function setupEnterKeySubmit() {
+    // タスク入力フォームの要素を取得
+    const taskName = document.getElementById("taskName");
+    const taskPriority = document.getElementById("taskPriority");
+    const taskDeadline = document.getElementById("taskDeadline");
+    const taskDetails = document.getElementById("taskDetails");
+    
+    // 各入力フィールドにキーイベントリスナーを追加
+    [taskName, taskPriority, taskDeadline, taskDetails].forEach(element => {
+        element.addEventListener("keypress", function(event) {
+            // Enterキーが押された場合
+            if (event.key === "Enter") {
+                // 標準のフォーム送信を防止
+                event.preventDefault();
+                
+                // タスク名が入力されている場合のみ追加処理を実行
+                if (taskName.value.trim()) {
+                    addTask();
+                } else {
+                    // タスク名が空の場合はタスク名入力欄にフォーカス
+                    taskName.focus();
+                    // 視覚的なフィードバックとしてアニメーション付与
+                    taskName.classList.add("input-error");
+                    setTimeout(() => {
+                        taskName.classList.remove("input-error");
+                    }, 500);
+                }
+            }
+        });
+    });
+}

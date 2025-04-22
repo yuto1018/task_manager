@@ -428,3 +428,14 @@ button.delete:hover {
         margin-bottom: 5px;
     }
 }
+
+@keyframes inputErrorShake {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-5px); }
+    75% { transform: translateX(5px); }
+}
+
+.input-error {
+    border-color: var(--danger-color) !important;
+    animation: inputErrorShake 0.4s linear;
+}
