@@ -8,20 +8,65 @@ let draggedTask = null;
 let sourceListType = null;
 let draggedTaskIndex = null;
 
+// カレンダー関連の変数
+let currentDate = new Date();
+let currentYear = currentDate.getFullYear();
+let currentMonth = currentDate.getMonth(); // 0-11
+
 // タスク一覧を取得
 function fetchTasks() {
+    console.log("Fetching tasks from API...");
+    
     fetch(`${API_URL}/tasks`)
-        .then(response => response.json())
+        .then(response => {
+            console.log("Server response status:", response.status);
+            if (!response.ok) {
+                throw new Error(`HTTP error! Status: ${response.status}`);
+            }
+            return response.json();
+        })
         .then(data => {
-            console.log("Fetched tasks:", data);  // デバッグ用
+            console.log("Fetched tasks data:", JSON.stringify(data, null, 2));  // データをJSONで表示
+            
+            if (!data || !Array.isArray(data.tasks)) {
+                console.error("Invalid data format received from server:", data);
+                throw new Error("Invalid data format received from server");
+            }
+            
+            // タスク数を確認
+            console.log(`Received ${data.tasks.length} tasks from server`);
+            
             allTasks = data.tasks; // すべてのタスクを保存
+            
+            // タスクの締め切り日フィールドをデバッグ
+            allTasks.forEach((task, index) => {
+                // 必須フィールドが存在することを確認
+                if (!task.name) task.name = `Task ${index}`;
+                if (!task.priority) task.priority = "低";
+                if (!task.deadline) task.deadline = "";
+                if (!task.details) task.details = "";
+                if (task.completed === undefined) task.completed = false;
+                
+                console.log(`Task ${index}: ${task.name}, Priority: ${task.priority}, Deadline: '${task.deadline || ''}'`);
+            });
             
             // ローカルストレージから今日のタスクリストを読み込む
             loadTodayTasks();
             
+            // タスク表示を更新
             displayTasks();
+            
+            // カレンダーを更新
+            renderCalendar();
         })
-        .catch(error => console.error("タスク取得エラー:", error));
+        .catch(error => {
+            console.error("タスク取得エラー:", error);
+            // UIにエラーメッセージを表示
+            const pendingTaskList = document.getElementById("pendingTaskList");
+            if (pendingTaskList) {
+                pendingTaskList.innerHTML = '<div class="error-message">タスクの読み込みに失敗しました。ページを再読み込みしてください。</div>';
+            }
+        });
 }
 
 // 今日のタスクをローカルストレージから読み込む
@@ -345,12 +390,23 @@ function getPriorityIcon(priority) {
 
 // 日付フォーマット
 function formatDate(dateString) {
-    const options = { year: 'numeric', month: 'short', day: 'numeric' };
-    return new Date(dateString).toLocaleDateString('ja-JP', options);
+    try {
+        const date = new Date(dateString);
+        if (isNaN(date.getTime())) {
+            console.error(`Invalid date: ${dateString}`);
+            return 'Invalid date';
+        }
+        const options = { year: 'numeric', month: 'short', day: 'numeric' };
+        return date.toLocaleDateString('ja-JP', options);
+    } catch (e) {
+        console.error(`Error formatting date: ${dateString}`, e);
+        return 'Date error';
+    }
 }
 
 // タスク追加
 function addTask() {
+    // フォームの値を取得
     const taskName = document.getElementById("taskName").value;
     if (!taskName.trim()) {
         alert("タスク名を入力してください");
@@ -358,38 +414,106 @@ function addTask() {
     }
     
     const taskPriority = document.getElementById("taskPriority").value;
-    const taskDeadline = document.getElementById("taskDeadline").value;
-    const taskDetails = document.getElementById("taskDetails").value;
+    let taskDeadline = document.getElementById("taskDeadline").value;
+    let taskDetails = document.getElementById("taskDetails").value;
 
+    // フォームデータをログに出力
+    console.log("Add task form data:");
+    console.log("- Name:", taskName);
+    console.log("- Priority:", taskPriority);
+    console.log("- Deadline:", taskDeadline);
+    console.log("- Details:", taskDetails);
+    
+    // undefined または null の場合は空文字列に変換
+    taskDeadline = taskDeadline || "";
+    taskDetails = taskDetails || "";
+
+    // 送信データを作成
+    const taskData = {
+        name: taskName,
+        priority: taskPriority,
+        deadline: taskDeadline,
+        details: taskDetails
+    };
+    
+    console.log("Sending task data to API:", JSON.stringify(taskData, null, 2));
+
+    // タスク追加リクエストを送信
     fetch(`${API_URL}/add_task`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ 
-            name: taskName, 
-            priority: taskPriority,
-            deadline: taskDeadline || null,
-            details: taskDetails || null
-        })
+        headers: {
+            "Content-Type": "application/json"
+        },
+        body: JSON.stringify(taskData)
     })
-    .then(() => {
-        fetchTasks();
+    .then(response => {
+        console.log("Response status:", response.status);
+        if (!response.ok) {
+            throw new Error(`Server responded with status: ${response.status}`);
+        }
+        return response.json();
+    })
+    .then(data => {
+        console.log("Task added successfully:", JSON.stringify(data, null, 2));
+        
+        // 受信したタスクデータを確認
+        if (data.task) {
+            console.log("Added task from server:", JSON.stringify(data.task, null, 2));
+            
+            // 受信したタスクのdeadlineとdetailsをチェック
+            if (data.task.deadline !== taskDeadline) {
+                console.warn("Warning: deadline mismatch - client:", taskDeadline, "server:", data.task.deadline);
+            }
+            if (data.task.details !== taskDetails) {
+                console.warn("Warning: details mismatch - client:", taskDetails, "server:", data.task.details);
+            }
+        }
+        
+        // フォームをクリア
         document.getElementById("taskName").value = "";
         document.getElementById("taskDeadline").value = "";
         document.getElementById("taskDetails").value = "";
+        
+        // サーバーから最新データを取得して表示を更新
+        fetchTasks();
     })
-    .catch(error => console.error("タスク追加エラー:", error));
+    .catch(error => {
+        console.error("Failed to add task:", error);
+        alert("タスクの追加に失敗しました。もう一度お試しください。");
+    });
 }
 
 // 編集モーダルを開く
 function openEditModal(index) {
     const task = allTasks[index];
     
+    // デバッグログ - タスクデータの詳細を確認
+    console.log("Opening edit modal for task:", JSON.stringify(task, null, 2));
+    
     // モーダルに現在のタスク情報を設定
     document.getElementById("editTaskIndex").value = index;
-    document.getElementById("editTaskName").value = task.name;
-    document.getElementById("editTaskPriority").value = task.priority;
-    document.getElementById("editTaskDeadline").value = task.deadline || '';
-    document.getElementById("editTaskDetails").value = task.details || '';
+    document.getElementById("editTaskName").value = task.name || "";
+    document.getElementById("editTaskPriority").value = task.priority || "低";
+    
+    // 締め切り日の設定
+    const deadlineInput = document.getElementById("editTaskDeadline");
+    if (task.deadline && task.deadline.trim() !== "") {
+        deadlineInput.value = task.deadline;
+        console.log("設定した締め切り日:", task.deadline);
+    } else {
+        deadlineInput.value = "";
+        console.log("締め切り日なし");
+    }
+    
+    // 詳細の設定
+    const detailsInput = document.getElementById("editTaskDetails");
+    if (task.details && task.details.trim() !== "") {
+        detailsInput.value = task.details;
+        console.log("設定した詳細:", task.details);
+    } else {
+        detailsInput.value = "";
+        console.log("詳細なし");
+    }
     
     // モーダルを表示
     const modal = document.getElementById("editTaskModal");
@@ -414,7 +538,17 @@ function closeEditModal() {
 
 // タスク更新
 function updateTask() {
-    const index = document.getElementById("editTaskIndex").value;
+    // 編集モーダルから値を取得
+    const index = parseInt(document.getElementById("editTaskIndex").value);
+    
+    // indexが有効な値かチェック
+    if (isNaN(index) || index < 0 || index >= allTasks.length) {
+        console.error("Invalid task index:", index);
+        alert("タスクの更新に失敗しました：無効なタスクインデックス");
+        closeEditModal();
+        return;
+    }
+    
     const taskName = document.getElementById("editTaskName").value;
     
     if (!taskName.trim()) {
@@ -424,21 +558,63 @@ function updateTask() {
     
     const oldTaskName = allTasks[index].name;
     const taskPriority = document.getElementById("editTaskPriority").value;
-    const taskDeadline = document.getElementById("editTaskDeadline").value;
-    const taskDetails = document.getElementById("editTaskDetails").value;
+    let taskDeadline = document.getElementById("editTaskDeadline").value;
+    let taskDetails = document.getElementById("editTaskDetails").value;
     
+    // フォームデータをログに出力
+    console.log("Form data collected:");
+    console.log("- Name:", taskName);
+    console.log("- Priority:", taskPriority);
+    console.log("- Deadline:", taskDeadline);
+    console.log("- Details:", taskDetails);
+    console.log("- Index:", index);
+    
+    // undefined または null の場合は空文字列に変換
+    taskDeadline = taskDeadline || "";
+    taskDetails = taskDetails || "";
+    
+    // 送信データを作成
+    const taskData = {
+        name: taskName,
+        priority: taskPriority,
+        deadline: taskDeadline,
+        details: taskDetails,
+        completed: allTasks[index].completed
+    };
+    
+    console.log("Sending update data to API:", JSON.stringify(taskData, null, 2));
+    
+    // 更新リクエストを送信
     fetch(`${API_URL}/update_task/${index}`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ 
-            name: taskName, 
-            priority: taskPriority,
-            deadline: taskDeadline || null,
-            details: taskDetails || null,
-            completed: allTasks[index].completed
-        })
+        headers: {
+            "Content-Type": "application/json"
+        },
+        body: JSON.stringify(taskData)
     })
-    .then(() => {
+    .then(response => {
+        console.log("Response status:", response.status);
+        if (!response.ok) {
+            throw new Error(`Server responded with status: ${response.status}`);
+        }
+        return response.json();
+    })
+    .then(data => {
+        console.log("Task updated successfully:", JSON.stringify(data, null, 2));
+        
+        // 受信したタスクデータを確認
+        if (data.task) {
+            console.log("Updated task from server:", JSON.stringify(data.task, null, 2));
+            
+            // 受信したタスクのdeadlineとdetailsをチェック
+            if (data.task.deadline !== taskDeadline) {
+                console.warn("Warning: deadline mismatch - client:", taskDeadline, "server:", data.task.deadline);
+            }
+            if (data.task.details !== taskDetails) {
+                console.warn("Warning: details mismatch - client:", taskDetails, "server:", data.task.details);
+            }
+        }
+        
         // タスク名が変更された場合、今日のタスクリストも更新
         if (oldTaskName !== taskName && todayTasks.includes(oldTaskName)) {
             const idx = todayTasks.indexOf(oldTaskName);
@@ -448,10 +624,19 @@ function updateTask() {
             }
         }
         
+        // モーダルを閉じる
         closeEditModal();
+        
+        // サーバーから最新データを取得して表示を更新
         fetchTasks();
     })
-    .catch(error => console.error("タスク更新エラー:", error));
+    .catch(error => {
+        console.error("Failed to update task:", error);
+        alert("タスクの更新に失敗しました。もう一度お試しください。");
+        
+        // エラー発生時もモーダルを閉じる
+        closeEditModal();
+    });
 }
 
 // タスク完了
@@ -562,6 +747,9 @@ document.addEventListener("DOMContentLoaded", function() {
     
     // Enterキーでのタスク追加機能を設定
     setupEnterKeySubmit();
+    
+    // カレンダー初期化
+    initializeCalendar();
 });
 
 // Enterキーでのタスク追加機能を設定
@@ -595,4 +783,225 @@ function setupEnterKeySubmit() {
             }
         });
     });
+}
+
+// カレンダーの初期化
+function initializeCalendar() {
+    // 月の移動ボタンのイベントリスナー
+    document.getElementById('prevMonth').addEventListener('click', function() {
+        navigateMonth(-1);
+    });
+    
+    document.getElementById('nextMonth').addEventListener('click', function() {
+        navigateMonth(1);
+    });
+    
+    // カレンダー描画
+    renderCalendar();
+}
+
+// 月の移動
+function navigateMonth(step) {
+    currentMonth += step;
+    
+    // 年の変更処理
+    if (currentMonth > 11) {
+        currentMonth = 0;
+        currentYear++;
+    } else if (currentMonth < 0) {
+        currentMonth = 11;
+        currentYear--;
+    }
+    
+    renderCalendar();
+}
+
+// カレンダーをレンダリング
+function renderCalendar() {
+    const calendarDays = document.getElementById('calendarDays');
+    const currentMonthElement = document.getElementById('currentMonth');
+    
+    // 現在の月を表示
+    const monthNames = ['1月', '2月', '3月', '4月', '5月', '6月', '7月', '8月', '9月', '10月', '11月', '12月'];
+    currentMonthElement.textContent = `${currentYear}年 ${monthNames[currentMonth]}`;
+    
+    // カレンダー内容をクリア
+    calendarDays.innerHTML = '';
+    
+    // 現在の月の最初の日と最後の日
+    const firstDay = new Date(currentYear, currentMonth, 1);
+    const lastDay = new Date(currentYear, currentMonth + 1, 0);
+    
+    // 先月の日を表示
+    const firstDayIndex = (firstDay.getDay() + 6) % 7; // 月曜始まりに調整（0が月曜）
+    const prevMonthLastDay = new Date(currentYear, currentMonth, 0).getDate();
+    
+    for (let i = firstDayIndex - 1; i >= 0; i--) {
+        const dayDiv = document.createElement('div');
+        dayDiv.classList.add('calendar-day', 'other-month');
+        dayDiv.innerHTML = `<div class="day-number">${prevMonthLastDay - i}</div>`;
+        calendarDays.appendChild(dayDiv);
+    }
+    
+    // 今日の日付
+    const today = new Date();
+    const todayDate = today.getDate();
+    const todayMonth = today.getMonth();
+    const todayYear = today.getFullYear();
+    
+    // 現在月の日を表示
+    for (let i = 1; i <= lastDay.getDate(); i++) {
+        const dayDiv = document.createElement('div');
+        dayDiv.classList.add('calendar-day');
+        
+        // 曜日の設定（土日の場合はweekendクラスを追加）
+        const dayOfWeek = new Date(currentYear, currentMonth, i).getDay();
+        if (dayOfWeek === 0 || dayOfWeek === 6) {
+            dayDiv.classList.add('weekend');
+        }
+        
+        // 今日の日付の場合はtodayクラスを追加
+        if (i === todayDate && currentMonth === todayMonth && currentYear === todayYear) {
+            dayDiv.classList.add('today');
+        }
+        
+        // この日のタスクを探す
+        const dateString = formatDateForComparison(new Date(currentYear, currentMonth, i));
+        
+        // 締め切り日が一致するタスクをフィルタリング
+        const dayTasks = allTasks.filter(task => {
+            if (!task.deadline || task.deadline.trim() === "") {
+                return false;
+            }
+            
+            // 締め切り日の文字列を比較
+            return formatDateForComparison(task.deadline) === dateString;
+        });
+        
+        // タスクが見つかった場合のデバッグログ
+        if (dayTasks.length > 0) {
+            console.log(`${dateString}に${dayTasks.length}件のタスクがあります:`, dayTasks.map(t => t.name));
+            dayDiv.classList.add('has-tasks');
+            
+            // 優先度の高いタスクを見つける
+            const highPriorityTasks = dayTasks.filter(task => task.priority === '高');
+            const mediumPriorityTasks = dayTasks.filter(task => task.priority === '中');
+            const lowPriorityTasks = dayTasks.filter(task => task.priority === '低');
+            
+            // タスクドットのHTMLを作成
+            let taskDotsHTML = '';
+            
+            if (highPriorityTasks.length > 0) {
+                taskDotsHTML += `<span class="task-dot high-priority"></span>`;
+            }
+            if (mediumPriorityTasks.length > 0) {
+                taskDotsHTML += `<span class="task-dot medium-priority"></span>`;
+            }
+            if (lowPriorityTasks.length > 0) {
+                taskDotsHTML += `<span class="task-dot low-priority"></span>`;
+            }
+            
+            dayDiv.innerHTML = `
+                <div class="day-number">${i}</div>
+                <div class="day-tasks">${taskDotsHTML}</div>
+            `;
+            
+            // クリックイベントの追加
+            dayDiv.addEventListener('click', function() {
+                showDayTasks(new Date(currentYear, currentMonth, i), dayTasks);
+            });
+        } else {
+            dayDiv.innerHTML = `<div class="day-number">${i}</div>`;
+        }
+        
+        calendarDays.appendChild(dayDiv);
+    }
+    
+    // 翌月の日を表示
+    const daysAfterLastDay = 7 - (firstDayIndex + lastDay.getDate()) % 7;
+    if (daysAfterLastDay < 7) {
+        for (let i = 1; i <= daysAfterLastDay; i++) {
+            const dayDiv = document.createElement('div');
+            dayDiv.classList.add('calendar-day', 'other-month');
+            dayDiv.innerHTML = `<div class="day-number">${i}</div>`;
+            calendarDays.appendChild(dayDiv);
+        }
+    }
+}
+
+// 特定の日付のタスク一覧を表示
+function showDayTasks(date, tasks) {
+    const modal = document.getElementById('taskDetailsModal');
+    const dateTitle = document.getElementById('detailsModalDate');
+    const tasksContainer = document.getElementById('detailsModalTasks');
+    
+    // 日付のフォーマット
+    const options = { year: 'numeric', month: 'long', day: 'numeric', weekday: 'long' };
+    dateTitle.textContent = date.toLocaleDateString('ja-JP', options);
+    
+    // タスク一覧の表示
+    tasksContainer.innerHTML = '';
+    
+    tasks.forEach(task => {
+        const priorityClass = getPriorityClass(task.priority);
+        const taskElement = document.createElement('div');
+        taskElement.classList.add('details-modal-task', priorityClass);
+        
+        taskElement.innerHTML = `
+            <div class="details-modal-task-header">
+                <div class="details-modal-task-title">${task.name}</div>
+                <div class="details-modal-task-priority tag ${priorityClass}">${task.priority}</div>
+            </div>
+            <div class="details-modal-task-status">
+                ${task.completed ? '<i class="fas fa-check-circle"></i> 完了' : '<i class="far fa-clock"></i> 未完了'}
+            </div>
+            ${task.details ? `<div class="details-modal-task-details">${task.details}</div>` : ''}
+        `;
+        
+        tasksContainer.appendChild(taskElement);
+    });
+    
+    // モーダルを表示
+    modal.style.display = 'block';
+    
+    // 閉じるボタンのイベントリスナー
+    modal.querySelector('.close').onclick = closeTaskDetailsModal;
+    
+    // モーダル外クリックで閉じる
+    window.onclick = function(event) {
+        if (event.target == modal) {
+            closeTaskDetailsModal();
+        }
+    };
+}
+
+// タスク詳細モーダルを閉じる
+function closeTaskDetailsModal() {
+    document.getElementById('taskDetailsModal').style.display = 'none';
+}
+
+// 日付を比較用にフォーマット（YYYY-MM-DD形式）
+function formatDateForComparison(date) {
+    if (!date) return null;
+    
+    // 日付オブジェクトでない場合は変換
+    let dateObj;
+    if (!(date instanceof Date)) {
+        dateObj = new Date(date);
+    } else {
+        dateObj = date;
+    }
+    
+    if (isNaN(dateObj.getTime())) {
+        console.error("Invalid date for comparison:", date);
+        return null;
+    }
+    
+    // YYYY-MM-DD形式にフォーマット
+    const year = dateObj.getFullYear();
+    const month = String(dateObj.getMonth() + 1).padStart(2, '0'); // 月は0始まりなので+1
+    const day = String(dateObj.getDate()).padStart(2, '0'); // 日付を2桁に整形
+    
+    const formattedDate = `${year}-${month}-${day}`;
+    return formattedDate;
 }

@@ -38,23 +38,64 @@
             <button onclick="sortTasks('name')" class="btn-sort"><i class="fas fa-font"></i> 名前順</button>
         </div>
 
-        <div class="task-lists-container">
-            <div class="task-list-column">
-                <h2><i class="far fa-clock"></i> 未完了タスク</h2>
-                <p class="drag-hint">タスクを今日のリストにドラッグできます</p>
-                <ul id="pendingTaskList" class="droppable" data-list-type="pending"></ul>
+        <div class="main-content">
+            <div class="tasks-section">
+                <div class="task-lists-container">
+                    <div class="task-list-column">
+                        <h2><i class="far fa-clock"></i> 未完了タスク</h2>
+                        <p class="drag-hint">タスクを今日のリストにドラッグできます</p>
+                        <ul id="pendingTaskList" class="droppable" data-list-type="pending"></ul>
+                    </div>
+                    
+                    <div class="task-list-column today-tasks">
+                        <h2><i class="fas fa-star"></i> 今日のタスク</h2>
+                        <p class="drag-hint">ここにタスクをドラッグして追加</p>
+                        <ul id="todayTaskList" class="droppable" data-list-type="today"></ul>
+                    </div>
+                </div>
+                
+                <div class="task-list-column">
+                    <h2><i class="fas fa-check-circle"></i> 完了タスク</h2>
+                    <ul id="completedTaskList"></ul>
+                </div>
             </div>
-            
-            <div class="task-list-column today-tasks">
-                <h2><i class="fas fa-star"></i> 今日のタスク</h2>
-                <p class="drag-hint">ここにタスクをドラッグして追加</p>
-                <ul id="todayTaskList" class="droppable" data-list-type="today"></ul>
+
+            <div class="calendar-section">
+                <div class="calendar-container">
+                    <h2><i class="far fa-calendar-alt"></i> カレンダー</h2>
+                    <div class="calendar-nav">
+                        <button id="prevMonth" class="calendar-nav-btn"><i class="fas fa-chevron-left"></i></button>
+                        <div id="currentMonth">2023年 1月</div>
+                        <button id="nextMonth" class="calendar-nav-btn"><i class="fas fa-chevron-right"></i></button>
+                    </div>
+                    <div class="calendar">
+                        <div class="calendar-header">
+                            <div>月</div>
+                            <div>火</div>
+                            <div>水</div>
+                            <div>木</div>
+                            <div>金</div>
+                            <div>土</div>
+                            <div>日</div>
+                        </div>
+                        <div id="calendarDays" class="calendar-days"></div>
+                    </div>
+                    <div class="calendar-legend">
+                        <div class="legend-item">
+                            <div class="legend-color priority-high-marker"></div>
+                            <div>高優先度タスク</div>
+                        </div>
+                        <div class="legend-item">
+                            <div class="legend-color priority-medium-marker"></div>
+                            <div>中優先度タスク</div>
+                        </div>
+                        <div class="legend-item">
+                            <div class="legend-color priority-low-marker"></div>
+                            <div>低優先度タスク</div>
+                        </div>
+                    </div>
+                </div>
             </div>
-        </div>
-        
-        <div class="task-list-column">
-            <h2><i class="fas fa-check-circle"></i> 完了タスク</h2>
-            <ul id="completedTaskList"></ul>
         </div>
     </div>
 
@@ -90,6 +131,15 @@
                     <button onclick="closeEditModal()" class="btn-cancel"><i class="fas fa-times"></i> キャンセル</button>
                 </div>
             </div>
+        </div>
+    </div>
+
+    <!-- タスク詳細表示モーダル -->
+    <div id="taskDetailsModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeTaskDetailsModal()">&times;</span>
+            <h2 id="detailsModalDate"></h2>
+            <div id="detailsModalTasks" class="details-modal-tasks"></div>
         </div>
     </div>
 

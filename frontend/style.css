@@ -10,6 +10,8 @@
     --border-radius: 6px;
     --edit-color: #f39c12;
     --today-color: #f1c40f;
+    --calendar-weekend: rgba(231, 76, 60, 0.1);
+    --calendar-border: #eaeaea;
 }
 
 * {
@@ -27,7 +29,7 @@ body {
 }
 
 .container {
-    max-width: 1000px;
+    max-width: 1200px;
     margin: 0 auto;
     background-color: white;
     border-radius: var(--border-radius);
@@ -93,6 +95,17 @@ textarea.form-control {
     font-family: inherit;
 }
 
+@keyframes inputErrorShake {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-5px); }
+    75% { transform: translateX(5px); }
+}
+
+.input-error {
+    border-color: var(--danger-color) !important;
+    animation: inputErrorShake 0.4s linear;
+}
+
 .form-control:focus {
     outline: none;
     border-color: var(--primary-color);
@@ -148,6 +161,20 @@ button {
     background-color: var(--primary-color);
     color: white;
     border-color: var(--primary-color);
+}
+
+/* メインコンテンツのレイアウト */
+.main-content {
+    display: flex;
+    gap: 20px;
+}
+
+.tasks-section {
+    flex: 2;
+}
+
+.calendar-section {
+    flex: 1;
 }
 
 /* タスクリストのレイアウト */
@@ -352,6 +379,231 @@ button.delete:hover {
     font-style: italic;
 }
 
+/* カレンダースタイル */
+.calendar-container {
+    background-color: white;
+    border-radius: var(--border-radius);
+    padding: 15px;
+    box-shadow: var(--box-shadow);
+}
+
+.calendar-nav {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+}
+
+.calendar-nav-btn {
+    background-color: transparent;
+    color: var(--primary-color);
+    border: 1px solid var(--primary-color);
+    border-radius: 50%;
+    width: 30px;
+    height: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    font-size: 14px;
+}
+
+.calendar-nav-btn:hover {
+    background-color: var(--primary-color);
+    color: white;
+}
+
+#currentMonth {
+    font-weight: 600;
+    font-size: 16px;
+    color: var(--text-color);
+}
+
+.calendar {
+    border: 1px solid var(--calendar-border);
+    border-radius: var(--border-radius);
+    overflow: hidden;
+}
+
+.calendar-header {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    text-align: center;
+    border-bottom: 1px solid var(--calendar-border);
+    font-weight: 600;
+    background-color: var(--light-gray);
+}
+
+.calendar-header div {
+    padding: 10px;
+}
+
+.calendar-days {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 1px;
+    background-color: var(--calendar-border);
+}
+
+.calendar-day {
+    background-color: white;
+    min-height: 35px;
+    padding: 5px;
+    text-align: center;
+    font-size: 14px;
+    position: relative;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.calendar-day:hover {
+    background-color: var(--light-gray);
+}
+
+.calendar-day.weekend {
+    background-color: var(--calendar-weekend);
+}
+
+.calendar-day.today {
+    font-weight: bold;
+    border: 2px solid var(--primary-color);
+}
+
+.calendar-day.other-month {
+    color: var(--medium-gray);
+}
+
+.calendar-day.has-tasks {
+    font-weight: bold;
+}
+
+.day-number {
+    margin-bottom: 3px;
+}
+
+.day-tasks {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.task-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    display: inline-block;
+    margin: 2px;
+}
+
+.task-dot.high-priority {
+    background-color: #e74c3c;
+}
+
+.task-dot.medium-priority {
+    background-color: #f39c12;
+}
+
+.task-dot.low-priority {
+    background-color: #3498db;
+}
+
+/* カレンダー日付内のタスクドット配置 */
+.day {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+
+/* 既存の日付のスタイルを保持しつつ、タスクドットのためのスペースを確保 */
+.day .task-dot {
+    margin-top: 2px;
+}
+
+.calendar-legend {
+    margin-top: 15px;
+    display: flex;
+    justify-content: center;
+    gap: 15px;
+    flex-wrap: wrap;
+}
+
+.legend-item {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 12px;
+}
+
+.legend-color {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+}
+
+.priority-high-marker {
+    background-color: var(--danger-color);
+}
+
+.priority-medium-marker {
+    background-color: #f39c12;
+}
+
+.priority-low-marker {
+    background-color: var(--primary-color);
+}
+
+/* タスク詳細モーダル */
+.details-modal-tasks {
+    max-height: 400px;
+    overflow-y: auto;
+    margin-top: 15px;
+}
+
+.details-modal-task {
+    padding: 10px;
+    margin-bottom: 10px;
+    border-radius: var(--border-radius);
+    background-color: var(--light-gray);
+    border-left: 4px solid var(--primary-color);
+}
+
+.details-modal-task.priority-high {
+    border-left-color: var(--danger-color);
+}
+
+.details-modal-task.priority-medium {
+    border-left-color: #f39c12;
+}
+
+.details-modal-task.priority-low {
+    border-left-color: var(--primary-color);
+}
+
+.details-modal-task-header {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 5px;
+}
+
+.details-modal-task-title {
+    font-weight: 600;
+}
+
+.details-modal-task-priority {
+    font-size: 12px;
+    padding: 2px 6px;
+    border-radius: 10px;
+    color: white;
+}
+
+.details-modal-task-details {
+    font-size: 13px;
+    color: var(--dark-gray);
+    margin-top: 5px;
+}
+
 /* モーダルスタイル */
 .modal {
     display: none;
@@ -411,6 +663,16 @@ button.delete:hover {
 }
 
 /* レスポンシブデザイン */
+@media (max-width: 1024px) {
+    .main-content {
+        flex-direction: column;
+    }
+    
+    .calendar-section {
+        margin-top: 20px;
+    }
+}
+
 @media (max-width: 768px) {
     .task-lists-container {
         flex-direction: column;
@@ -427,15 +689,19 @@ button.delete:hover {
     .task-actions button {
         margin-bottom: 5px;
     }
+    
+    .calendar-container {
+        padding: 10px;
+    }
 }
 
-@keyframes inputErrorShake {
-    0%, 100% { transform: translateX(0); }
-    25% { transform: translateX(-5px); }
-    75% { transform: translateX(5px); }
-}
-
-.input-error {
-    border-color: var(--danger-color) !important;
-    animation: inputErrorShake 0.4s linear;
+.error-message {
+    color: #e74c3c;
+    text-align: center;
+    padding: 15px;
+    background-color: rgba(231, 76, 60, 0.1);
+    border: 1px solid #e74c3c;
+    border-radius: var(--border-radius);
+    margin: 10px 0;
+    font-weight: 500;
 }
