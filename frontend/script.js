@@ -232,46 +232,121 @@ function createTaskElement(task, index) {
 
 // ドラッグ&ドロップイベントリスナーの設定
 function setupDragAndDrop() {
-    const dropZones = document.querySelectorAll('.droppable');
-    
-    dropZones.forEach(zone => {
-        zone.addEventListener('dragover', handleDragOver);
-        zone.addEventListener('dragleave', handleDragLeave);
-        zone.addEventListener('drop', handleDrop);
+    const draggables = document.querySelectorAll('.task-list-column ul li[draggable="true"]');
+    const containers = document.querySelectorAll('.droppable');
+    const todayTasksContainer = document.querySelector('.today-tasks');
+
+    // ドラッグ可能な要素にイベントリスナーを設定
+    draggables.forEach(draggable => {
+        draggable.removeEventListener('dragstart', handleDragStart);
+        draggable.removeEventListener('dragend', handleDragEnd);
+        
+        draggable.addEventListener('dragstart', handleDragStart);
+        draggable.addEventListener('dragend', handleDragEnd);
     });
+
+    // ドロップゾーンにイベントリスナーを設定
+    containers.forEach(container => {
+        container.removeEventListener('dragover', handleDragOver);
+        container.removeEventListener('dragleave', handleDragLeave);
+        container.removeEventListener('drop', handleDrop);
+        
+        container.addEventListener('dragover', handleDragOver);
+        container.addEventListener('dragleave', handleDragLeave);
+        container.addEventListener('drop', handleDrop);
+    });
+
+    // 今日のタスクコンテナ全体でドロップを受け付ける
+    if (todayTasksContainer) {
+        todayTasksContainer.removeEventListener('dragover', handleTodayContainerDragOver);
+        todayTasksContainer.removeEventListener('dragleave', handleTodayContainerDragLeave);
+        todayTasksContainer.removeEventListener('drop', handleTodayContainerDrop);
+        
+        todayTasksContainer.addEventListener('dragover', handleTodayContainerDragOver);
+        todayTasksContainer.addEventListener('dragleave', handleTodayContainerDragLeave);
+        todayTasksContainer.addEventListener('drop', handleTodayContainerDrop);
+    }
+}
+
+// 今日のタスクコンテナ用のドラッグオーバーハンドラー
+function handleTodayContainerDragOver(e) {
+    e.preventDefault();
+    this.classList.add('droppable-hover');
+}
+
+// 今日のタスクコンテナ用のドラッグリーブハンドラー
+function handleTodayContainerDragLeave(e) {
+    // 子要素へのドラッグリーブは無視する
+    if (e.currentTarget.contains(e.relatedTarget)) {
+        return;
+    }
+    this.classList.remove('droppable-hover');
+}
+
+// 今日のタスクコンテナ用のドロップハンドラー
+function handleTodayContainerDrop(e) {
+    e.preventDefault();
+    this.classList.remove('droppable-hover');
+    
+    // ドラッグされたタスクのIDを取得
+    if (!draggedTask) return;
+    
+    const taskName = draggedTask.dataset.taskName;
+    const taskIndex = parseInt(draggedTask.dataset.taskIndex);
+    
+    // 既に今日のタスクに含まれている場合は追加しない
+    if (todayTasks.includes(taskName)) return;
+    
+    // 今日のタスクリストに追加
+    todayTasks.push(taskName);
+    saveTodayTasks();
+    
+    // 画面を更新
+    displayTasks();
 }
 
 // ドラッグ開始時の処理
 function handleDragStart(e) {
-    draggedTask = e.target;
-    draggedTask.classList.add('dragging');
-    sourceListType = draggedTask.closest('.droppable').dataset.listType;
-    draggedTaskIndex = draggedTask.dataset.taskIndex;
+    draggedTask = this;
+    sourceListType = this.parentNode.dataset.listType;
+    draggedTaskIndex = parseInt(this.dataset.taskIndex);
     
-    // データ転送オブジェクトを設定
+    // DataTransferオブジェクトにデータを設定
     e.dataTransfer.effectAllowed = 'move';
-    e.dataTransfer.setData('text/plain', draggedTask.dataset.taskName);
+    e.dataTransfer.setData('text/plain', this.dataset.taskName);
+    
+    this.classList.add('dragging');
+    
+    // 今日のタスクコンテナをハイライト
+    const todayTasksContainer = document.querySelector('.today-tasks');
+    if (todayTasksContainer && sourceListType === 'pending') {
+        todayTasksContainer.classList.add('droppable-hover');
+    }
 }
 
 // ドラッグ終了時の処理
 function handleDragEnd(e) {
-    if (draggedTask) {
-        draggedTask.classList.remove('dragging');
-        draggedTask = null;
+    this.classList.remove('dragging');
+    
+    // すべてのドロップゾーンのハイライトを解除
+    document.querySelectorAll('.droppable-hover').forEach(container => {
+        container.classList.remove('droppable-hover');
+    });
+    
+    // 今日のタスクコンテナのハイライトを解除
+    const todayTasksContainer = document.querySelector('.today-tasks');
+    if (todayTasksContainer) {
+        todayTasksContainer.classList.remove('droppable-hover');
     }
     
-    // ドロップ対象のハイライトを全て解除
-    document.querySelectorAll('.droppable').forEach(dropZone => {
-        dropZone.classList.remove('droppable-hover');
-    });
+    draggedTask = null;
+    sourceListType = null;
+    draggedTaskIndex = null;
 }
 
 // ドラッグオーバー時の処理
 function handleDragOver(e) {
-    e.preventDefault(); // デフォルトのドラッグオーバー動作を抑制
-    e.dataTransfer.dropEffect = 'move';
-    
-    // ドロップ可能な領域をハイライト
+    e.preventDefault();
     this.classList.add('droppable-hover');
 }
 
@@ -285,30 +360,31 @@ function handleDrop(e) {
     e.preventDefault();
     this.classList.remove('droppable-hover');
     
-    const targetListType = this.dataset.listType;
+    // ドラッグされたタスクのIDを取得
     const taskName = e.dataTransfer.getData('text/plain');
     
-    // 同じリストでのドロップは処理しない
-    if (sourceListType === targetListType) {
-        return;
-    }
+    // ドロップ先のリストタイプを取得
+    const targetListType = this.dataset.listType;
     
-    // 今日のタスクリストに追加または削除
-    if (targetListType === 'today' && !todayTasks.includes(taskName)) {
-        // 今日のタスクリストに追加
-        todayTasks.push(taskName);
-        saveTodayTasks();
-    } else if (targetListType === 'pending' && todayTasks.includes(taskName)) {
-        // 今日のタスクリストから削除
-        const index = todayTasks.indexOf(taskName);
-        if (index !== -1) {
-            todayTasks.splice(index, 1);
-            saveTodayTasks();
+    // タスクを移動
+    if (taskName && sourceListType && targetListType) {
+        if (sourceListType !== targetListType) {
+            if (targetListType === 'today') {
+                // 今日のタスクに追加
+                if (!todayTasks.includes(taskName)) {
+                    todayTasks.push(taskName);
+                    saveTodayTasks();
+                }
+            } else if (sourceListType === 'today' && targetListType === 'pending') {
+                // 今日のタスクから未完了タスクに移動
+                todayTasks = todayTasks.filter(name => name !== taskName);
+                saveTodayTasks();
+            }
+            
+            // 画面を更新
+            displayTasks();
         }
     }
-    
-    // 表示を更新
-    displayTasks();
 }
 
 // 詳細表示の切り替え
